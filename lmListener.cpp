@@ -193,7 +193,8 @@ int main()
     char message[MAX_MESSAGE_SIZE];
 
     /// LED Type selection listener thread
-    bool isWS = false;
+    bool isWS = true;
+    switchWsOut(isWS);
 
     std::thread typeListener([&isWS, &typeInput](){
         char message[6];
