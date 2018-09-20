@@ -1,10 +1,17 @@
 
-CXXFLAGS=-Wall -g -std=c++14 -lrt -lm -O2  -lpthread 
+CXXFLAGS=-Wall -std=c++14 -lrt -lm -lpthread 
 
 all:
 	g++ lmListener.cpp UdpManager.cpp spi/sk9822led.c easylogging++.cc ./rpi_ws281x/libws2811.a \
-	-L -lws2811 -L./spi -lwiringPi $(CXXFLAGS) -o lmListener
+	-L -lws2811 -L./spi -lwiringPi $(CXXFLAGS) -g -o lmListener
 
+release:
+	g++ lmListener.cpp UdpManager.cpp spi/sk9822led.c easylogging++.cc ./rpi_ws281x/libws2811.a \
+	-L -lws2811 -L./spi -lwiringPi $(CXXFLAGS) -O2 -DNDEBUG -DELPP_DISABLE_DEBUG_LOGS -DELPP_NO_DEFAULT_LOG_FILE \
+	-o lmListener
+
+#  --v=3 easylog level WARNINGS
+#  -g compile debug optimized
 
 # WS_INCDIR=./rpi_ws281x
 # WS_LIBDIR=./rpi_ws281x
