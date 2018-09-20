@@ -1,8 +1,8 @@
 
-CXXFLAGS=-Wall -g -std=c++14 -lrt -lm -O2 # -lpthread 
+CXXFLAGS=-Wall -g -std=c++14 -lrt -lm -O2  -lpthread 
 
 all:
-	g++ lmListener.cpp UdpManager.cpp spi/sk9822led.c libws2811.a \
+	g++ lmListener.cpp UdpManager.cpp spi/sk9822led.c easylogging++.cc ./rpi_ws281x/libws2811.a \
 	-L -lws2811 -L./spi -lwiringPi $(CXXFLAGS) -o lmListener
 
 

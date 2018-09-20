@@ -166,7 +166,6 @@ void set_gamma(double gamma_red, double gamma_green, double gamma_blue)
 
 void write_gamma_color(sk9822_color *p, uint8_t red, uint8_t green, uint8_t blue)
 {
-    uint8_t flag;
     uint8_t gamma_corrected_red = gamma_table_red[red];
     uint8_t gamma_corrected_green = gamma_table_green[green];
     uint8_t gamma_corrected_blue = gamma_table_blue[blue];
