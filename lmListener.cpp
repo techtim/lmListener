@@ -55,7 +55,7 @@ static const int PIN_SWITCH_SPI = 24;
 static std::map<int, bool> s_gpioSwitches
     = { { PIN_SWITCH_1, false }, // false(LOW) - send ws to chan 1
         { PIN_SWITCH_2, false }, // false(LOW) - send ws to chan 2
-        { PIN_SWITCH_SPI, true } }; // send spi to chan 1 (false) or chan 2 (true)
+        { PIN_SWITCH_SPI, false } }; // send spi to chan 1 (false) or chan 2 (true)
 
 enum {
     TYPE_WS281X,
@@ -197,6 +197,7 @@ int main()
     switchWsOut(isWS);
 
     std::thread typeListener([&isWS, &typeInput](){
+        std::string currentType{""};
         char message[6];
         while (1) {
             if (typeInput.Receive(message, 6) < 6)
@@ -204,7 +205,8 @@ int main()
             std::string type(message, 6);
             LOG(DEBUG) << "Got change type to " << type;
             /// if switch to diff type
-            if (!(isWS && s_ledTypeToEnum[type] == TYPE_WS281X)) {
+            if (currentType != type) {
+                currentType = type;
                 LOG(DEBUG) << "Got new type " << type;
                 isWS = (s_ledTypeToEnum[type] == TYPE_WS281X);    
                 switchWsOut(isWS);
