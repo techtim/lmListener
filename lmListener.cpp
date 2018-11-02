@@ -63,7 +63,7 @@ enum {
 };
 
 static std::map<std::string, int> s_ledTypeToEnum 
-    = { { "WS2811", TYPE_WS281X },
+    = { { "WS281X", TYPE_WS281X },
         { "SK9822", TYPE_SK9822 } };
 
 bool initGPIO()
@@ -82,9 +82,14 @@ bool initGPIO()
     LOG(INFO) << "GPIO Inited";
     return true;
 }
+
+static bool s_isWS = false;
 void switchWsOut(bool isWS) {
-    digitalWrite(PIN_SWITCH_1, isWS ? LOW : HIGH);
-    digitalWrite(PIN_SWITCH_2, isWS ? LOW : HIGH);
+    if (s_isWS == isWS)
+        return;
+    s_isWS = isWS;
+    digitalWrite(PIN_SWITCH_1, s_isWS ? LOW : HIGH);
+    digitalWrite(PIN_SWITCH_2, s_isWS ? LOW : HIGH);
 }
 
 bool initWS(ws2811_t &ledstring)
@@ -193,7 +198,7 @@ int main()
     char message[MAX_MESSAGE_SIZE];
 
     /// LED Type selection listener thread
-    bool isWS = true;
+    bool isWS = !s_isWS;
     switchWsOut(isWS);
 
     std::thread typeListener([&isWS, &typeInput](){
@@ -209,12 +214,12 @@ int main()
                 currentType = type;
                 LOG(DEBUG) << "Got new type " << type;
                 isWS = (s_ledTypeToEnum[type] == TYPE_WS281X);    
-                switchWsOut(isWS);
             }
         };
     });
 
     while (continue_looping) {
+        switchWsOut(isWS);
         /// wait for frames with min size 4 bytes which are header
         if ((received = frameInput.PeekReceive()) > 4) {
             if (frameInput.Receive(message, received) <= 0)
@@ -226,7 +231,7 @@ int main()
                    && (message[chan_cntr * 2] != 0xff && message[chan_cntr * 2 + 1] != 0xff)) {
                 /// get number of leds to read per each channel
                 ledsInChannel[chan_cntr] = message[chan_cntr * 2 + 1] << 8 | message[chan_cntr * 2];
-                // LOG(INFO) << "#" << chan_cntr << " ledsInChannel : " << ledsInChannel[chan_cntr];
+                LOG(DEBUG) << "#" << chan_cntr << " ledsInChannel : " << ledsInChannel[chan_cntr];
                 if (ledsInChannel[chan_cntr] > max_leds_in_chan)
                     max_leds_in_chan = ledsInChannel[chan_cntr];
                 ++chan_cntr;
@@ -281,7 +286,6 @@ int main()
                 }
                 usleep(1000);
             }
-            
         }
     }
 

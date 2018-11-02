@@ -1,5 +1,5 @@
 
-CXXFLAGS=-Wall -std=c++14 -lrt -lm -lpthread 
+CXXFLAGS=-Wall -std=c++14 -lrt -lm -lpthread -fpermissive -Wwrite-strings
 
 all:
 	g++ lmListener.cpp UdpManager.cpp spi/sk9822led.c easylogging++.cc ./rpi_ws281x/libws2811.a \
