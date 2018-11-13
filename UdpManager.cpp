@@ -1,7 +1,6 @@
 //
 // Created by Timofey Tavlintsev on 8/15/17.
 //
-#define _CRT_SECURE_NO_DEPRECATE
 
 #include "UdpManager.h"
 #include "ofxNetworkUtils.h"
