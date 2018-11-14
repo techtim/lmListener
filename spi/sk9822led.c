@@ -34,25 +34,23 @@ static sk9822_color endFrame;
 int sk9822_init(sk9822_buffer *buf, int leds)
 {
     buf->leds = leds;
-    buf->size = (leds + 2) * sizeof(sk9822_color);
+    // size = num leds + start & end frame + (leds/2) bits of 0 => (8+8*(leds >> 4)) of 0x00
+    buf->size = (leds + 2 + 1 + (leds-1) / 64) * sizeof(sk9822_color);
     buf->buffer = (sk9822_color *)malloc(buf->size);
     if (buf->buffer == NULL) {
         return -1;
     }
-
-    buf->pixels = buf->buffer + sizeof(sk9822_color);
+    printf ("buf: leds=%i, size=%i \n", buf->leds, buf->size);
+    buf->pixels = buf->buffer + 1;
 
     startFrame.r = 0x00;
     startFrame.g = 0x00;
     startFrame.b = 0x00;
     startFrame.f = 0x00;
-    endFrame.r = 0xff;
-    endFrame.g = 0xff;
-    endFrame.b = 0xff;
-    endFrame.f = 0xff;
-
-    write_raw(buf->buffer, startFrame);
-    write_raw(buf->buffer + buf->size - 1, endFrame);
+    endFrame.r = 0x00;
+    endFrame.g = 0x00;
+    endFrame.b = 0x00;
+    endFrame.f = 0x00;
 
     return 0;
 }
@@ -95,8 +93,12 @@ int send_buffer(int filedes, sk9822_buffer *buf, const int leds_num)
 {
     int ret;
     write_raw(buf->buffer, startFrame);
-    write_raw(buf->pixels + leds_num, endFrame);
-    ret = (int)write_all(filedes, buf->buffer, (leds_num + 8) * sizeof(sk9822_color));
+    // write endFrame + zero bit for each second led with 32 leds step (==sizeof(sk9822_color))
+    int endFramesSize = 2 + (leds_num-1) / 64;
+    for (int i=0; i < endFramesSize; ++i)
+        write_raw(buf->pixels + leds_num + i, endFrame);
+
+    ret = (int)write_all(filedes, buf->buffer, (leds_num + 1 + endFramesSize) * sizeof(sk9822_color));
     return ret;
 }
 

@@ -21,11 +21,11 @@ extern "C" {
  * README.txt file which accompanies this library.
  */
 
-/// Implementation of the interface for writing to LDP6803 led device.
+/// Implementation of the interface for writing to SK9822 and APA102 led device.
 ///
 /// 00000000 00000000 00000000 00000000 FFFFFFFF BBBBBBBB GGGGGGGG RRRRRRRR ...
 /// |---------------------------------| |---------------| |---------------|
-/// 32 zeros to start the frame Led1 Led2 ...
+/// 32 zeros to start the frame Led1 Led2 ... 32 zeroes in frame + leds number / 2 zero bits
 
 typedef struct _sk9822_color {
     // 11111111 BBBBBBBB GGGGGGGG RRRRRRRR

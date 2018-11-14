@@ -56,6 +56,7 @@ struct SpiOut
         buf.pixels[index].g = green;
         buf.pixels[index].b = blue;
     }
+
     void send(size_t chan, size_t ledsNumber){
         if (fd < 0 || chan >= buffers.size()) {
             LOG(ERROR) << "SPI not initialized or wrong channel:" << chan;
