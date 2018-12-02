@@ -16,6 +16,7 @@
 #include <thread>
 #include <unistd.h>
 #include <vector>
+#include <chrono>
 
 #include "UdpManager.h"
 #include "rpi_ws281x/ws2811.h"
@@ -24,11 +25,11 @@
 
 #include "easylogging++.h"
 
-#define ARRAY_SIZE(stuff) (sizeof(stuff) / sizeof(stuff[0]))
+using microseconds = std::chrono::microseconds; 
+using milliseconds = std::chrono::milliseconds; 
+using namespace std::chrono_literals;
 
-// defaults for cmdline options
-#define TARGET_FREQ WS2811_TARGET_FREQ
-#define GPIO_PIN 18
+// WS281X lib options
 #define GPIO_PIN_1 12
 #define GPIO_PIN_2 13
 #define DMA 10
@@ -81,7 +82,7 @@ bool initGPIO()
 
 bool initWS(ws2811_t &ledstring)
 {
-    ledstring.freq = TARGET_FREQ;
+    ledstring.freq = WS2811_TARGET_FREQ;
     ledstring.dmanum = DMA;
     /// channel params sequence must fit its arrangement in ws2811_channel_t
     ledstring.channel[0] = {
@@ -124,7 +125,7 @@ struct GpioOutSwitcher {
         m_isWs = isWS;
         digitalWrite(PIN_SWITCH_1, m_isWs ? LOW : HIGH);
         digitalWrite(PIN_SWITCH_2, m_isWs ? LOW : HIGH);
-        usleep(500000); /// long sleep to correctly switch
+        std::this_thread::sleep_for(milliseconds(500));
     }
     bool m_isWs;
 };
@@ -272,7 +273,7 @@ int main()
                     LOG(ERROR) << "ws2811_render failed: " << ws2811_get_return_t_str(wsReturnStat);
                     break;
                 }
-                usleep(30 * max_leds_in_chan);
+                std::this_thread::sleep_for(microseconds(30 * max_leds_in_chan));
             }
             else {
                 for (curChannel = 0; curChannel < chan_cntr; ++curChannel) {
@@ -281,7 +282,7 @@ int main()
                     digitalWrite(PIN_SWITCH_SPI, curChannel == 0 ? HIGH : LOW);
                     spiOut.send(curChannel, ledsInChannel[curChannel]);
                 }
-                usleep(max_leds_in_chan);
+                std::this_thread::sleep_for(microseconds(max_leds_in_chan));
             }
         }
     }
