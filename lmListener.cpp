@@ -22,6 +22,7 @@
 #include "rpi_ws281x/ws2811.h"
 #include "spi/SpiOut.h"
 #include <wiringPi.h>
+#include <wiringPiSPI.h>
 
 #include "easylogging++.h"
 
@@ -30,13 +31,13 @@ using milliseconds = std::chrono::milliseconds;
 using namespace std::chrono_literals;
 
 // WS281X lib options
-#define GPIO_PIN_1 12
+#define GPIO_PIN_1 21
 #define GPIO_PIN_2 13
 #define DMA 10
 #define STRIP_TYPE WS2811_STRIP_RGB // WS2812/SK6812RGB integrated chip+leds
 //#define STRIP_TYPE SK6812_STRIP_RGBW // SK6812RGBW
 
-constexpr size_t MAX_CHANNELS = 2;
+constexpr size_t MAX_CHANNELS = 1;
 constexpr size_t LED_COUNT_WS = 1000;
 constexpr size_t LED_COUNT_SPI = 2000;
 constexpr size_t MAX_SENDBUFFER_SIZE = 4096 * 3; // 2 SPI channels RGB
@@ -65,16 +66,16 @@ static std::map<std::string, int> s_ledTypeToEnum
 
 bool initGPIO()
 {
-    if (wiringPiSetupGpio() != 0) {
-        LOG(ERROR) << "Failed to init GPIO";
+    if (wiringPiSPISetup(0, 1000000) == -1) {
+        LOG(ERROR) << "Failed to init wiringPi SPI";
         return false;
     }
-    for (auto &gpio : s_gpioSwitches) {
-        pinMode(gpio.first, OUTPUT);
-        LOG(INFO) << "Pin #" << std::to_string(gpio.first) << " -> "
-                  << (gpio.second ? "HIGH" : "LOW");
-        digitalWrite(gpio.first, (gpio.second ? HIGH : LOW));
-    }
+    // for (auto &gpio : s_gpioSwitches) {
+    //     pinMode(gpio.first, OUTPUT);
+    //     LOG(INFO) << "Pin #" << std::to_string(gpio.first) << " -> "
+    //               << (gpio.second ? "HIGH" : "LOW");
+    //     digitalWrite(gpio.first, (gpio.second ? HIGH : LOW));
+    // }
 
     LOG(INFO) << "GPIO Inited";
     return true;
@@ -93,14 +94,14 @@ bool initWS(ws2811_t &ledstring)
         nullptr,
         255, // brightness
     };
-    ledstring.channel[1] = {
-        GPIO_PIN_2, // gpionum
-        0, // invert
-        LED_COUNT_WS, // count
-        STRIP_TYPE, // strip_type
-        nullptr,
-        255, // brightness
-    };
+    // ledstring.channel[1] = {
+    //     0, //GPIO_PIN_2, // gpionum
+    //     0, // invert
+    //     0, // LED_COUNT_WS, // count
+    //     0, // STRIP_TYPE, // strip_type
+    //     nullptr,
+    //     255, // brightness
+    // };
 
     ws2811_return_t ret;
     if ((ret = ws2811_init(&ledstring)) != WS2811_SUCCESS) {
@@ -152,13 +153,13 @@ int main()
         exit(1);
     }
 
-    SpiOut spiOut;
-    if (!spiOut.init(s_spiDevice))
-        exit(1);
-    /// add two channels to spi out,
-    /// further can select kind of channel for different ICs
-    spiOut.addChannel(LED_COUNT_SPI);
-    spiOut.addChannel(LED_COUNT_SPI);
+    // SpiOut spiOut;
+    // if (!spiOut.init(s_spiDevice))
+    //     exit(1);
+    // /// add two channels to spi out,
+    // /// further can select kind of channel for different ICs
+    // spiOut.addChannel(LED_COUNT_SPI);
+    // spiOut.addChannel(LED_COUNT_SPI);
 
     if (!initGPIO())
         exit(1);
@@ -177,27 +178,27 @@ int main()
     GpioOutSwitcher gpioSwitcher;
     std::atomic<bool> isWS{ gpioSwitcher.m_isWs };
 
-    std::thread typeListener([&isWS]() {
-        LedMapper::UdpSettings udpConf;
-        udpConf.receiveOn(STRIP_TYPE_PORT);
-        auto typeInput = LedMapper::UdpManager();
-        if (!typeInput.Setup(udpConf)) {
-            LOG(ERROR) << "Failed to bind to port=" << STRIP_TYPE_PORT;
-            exit(1);
-        }
-        std::string currentType{ "" };
-        char message[6];
-        while (continue_looping.load()) {
-            if (typeInput.Receive(message, 6) < 6)
-                continue;
-            std::string type(message, 6);
-            if (currentType != type) {
-                currentType = type;
-                LOG(DEBUG) << "Got new type " << type;
-                isWS.store(s_ledTypeToEnum[type] == TYPE_WS281X, std::memory_order_release);
-            }
-        };
-    });
+    // std::thread typeListener([&isWS]() {
+    //     LedMapper::UdpSettings udpConf;
+    //     udpConf.receiveOn(STRIP_TYPE_PORT);
+    //     auto typeInput = LedMapper::UdpManager();
+    //     if (!typeInput.Setup(udpConf)) {
+    //         LOG(ERROR) << "Failed to bind to port=" << STRIP_TYPE_PORT;
+    //         exit(1);
+    //     }
+    //     std::string currentType{ "" };
+    //     char message[6];
+    //     while (continue_looping.load()) {
+    //         if (typeInput.Receive(message, 6) < 6)
+    //             continue;
+    //         std::string type(message, 6);
+    //         if (currentType != type) {
+    //             currentType = type;
+    //             LOG(DEBUG) << "Got new type " << type;
+    //             isWS.store(s_ledTypeToEnum[type] == TYPE_WS281X, std::memory_order_release);
+    //         }
+    //     };
+    // });
 
     LOG(INFO) << "Inited ledMapper Listener";
 
@@ -245,7 +246,7 @@ int main()
             total_leds_num = (received - headerByteOffset) / 3;
 
             /// For each channel fill output buffers with pixels data
-            chanPixelOffset = 0;
+            chanPixelOffset = 1; // 0; use first pixel for motor
             for (curChannel = 0; curChannel < chan_cntr; ++curChannel) {
                 for (i = chanPixelOffset;
                      i < ledsInChannel[curChannel] + chanPixelOffset && i < total_leds_num; ++i) {
@@ -260,19 +261,26 @@ int main()
                             | pixels[i * 3 + 2];
                     }
                     else {
-                        spiOut.writeLed(curChannel, i - chanPixelOffset, pixels[i * 3 + 0],
-                            pixels[i * 3 + 1], pixels[i * 3 + 2]);
+                        // spiOut.writeLed(curChannel, i - chanPixelOffset, pixels[i * 3 + 0],
+                        //     pixels[i * 3 + 1], pixels[i * 3 + 2]);
                     }
                 }
                 chanPixelOffset += ledsInChannel[curChannel];
             }
 
-            if (isWS) {
+            /// Send data of the first pixel to mtor through SPI 
+            if (wiringPiSPIDataRW(0, (unsigned char*)pixels, 1) == -1)
+                LOG(ERROR) << "Error on wiringPi SPI out";
+
+            if (isWS) {     
+                LOG(DEBUG) << "WS OUT total leds=" << total_leds_num;
+
                 wsReturnStat = ws2811_render(&wsOut);
                 if (wsReturnStat != WS2811_SUCCESS) {
                     LOG(ERROR) << "ws2811_render failed: " << ws2811_get_return_t_str(wsReturnStat);
                     break;
                 }
+                LOG(DEBUG) << "WS OUT Rendered";
                 std::this_thread::sleep_for(microseconds(30 * max_leds_in_chan));
             }
             else {
@@ -280,7 +288,7 @@ int main()
                     if (ledsInChannel[curChannel] == 0)
                         continue;
                     digitalWrite(PIN_SWITCH_SPI, curChannel == 0 ? HIGH : LOW);
-                    spiOut.send(curChannel, ledsInChannel[curChannel]);
+                    // spiOut.send(curChannel, ledsInChannel[curChannel]);
                 }
                 std::this_thread::sleep_for(microseconds(max_leds_in_chan));
             }
@@ -289,7 +297,7 @@ int main()
 
     LOG(INFO) << "Exit from loop";
 
-    typeListener.join();
+    // typeListener.join();
 
     ws2811_fini(&wsOut);
 
