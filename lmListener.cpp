@@ -6,6 +6,7 @@
 */
 
 #include <atomic>
+#include <chrono>
 #include <iostream>
 #include <map>
 #include <signal.h>
@@ -16,7 +17,6 @@
 #include <thread>
 #include <unistd.h>
 #include <vector>
-#include <chrono>
 
 #include "UdpManager.h"
 #include "rpi_ws281x/ws2811.h"
@@ -26,8 +26,8 @@
 
 #include "easylogging++.h"
 
-using microseconds = std::chrono::microseconds; 
-using milliseconds = std::chrono::milliseconds; 
+using microseconds = std::chrono::microseconds;
+using milliseconds = std::chrono::milliseconds;
 using namespace std::chrono_literals;
 
 // WS281X lib options
@@ -131,6 +131,32 @@ struct GpioOutSwitcher {
     bool m_isWs;
 };
 
+double rgb2hue(uint8_t r, uint8_t g, uint8_t b)
+{
+    double hue = 0.0;
+
+    double min = std::min(r, std::min(g, b));
+    double max = std::max(r, std::max(g, b));
+
+    double delta = max - min;
+    if (delta < 0.00001 || max < 1.0)
+        return hue;
+
+    if (r >= max) // > is bogus, just keeps compilor happy
+        hue = (g - b) / delta; // between yellow & magenta
+    else if (g >= max)
+        hue = 2.0 + (b - r) / delta; // between cyan & yellow
+    else
+        hue = 4.0 + (r - g) / delta; // between magenta & cyan
+
+    hue *= 60.0; // degrees
+
+    if (hue < 0.0)
+        hue += 360.0;
+
+    return hue;
+}
+
 void stop_program(int sig)
 {
     /* Ignore the signal */
@@ -146,6 +172,11 @@ void stop_program(int sig)
 ///
 int main()
 {
+    el::Loggers::reconfigureAllLoggers(el::ConfigurationType::SubsecondPrecision, "3");
+    el::Loggers::reconfigureAllLoggers(el::ConfigurationType::Format,
+                                       "%datetime{%H:%m:%s.%g} [%level] %msg");
+    el::Loggers::reconfigureAllLoggers(el::ConfigurationType::ToFile, "false");
+
     /// WS (one wire) output setup
     ws2811_t wsOut;
     ws2811_return_t wsReturnStat;
@@ -178,28 +209,6 @@ int main()
     GpioOutSwitcher gpioSwitcher;
     std::atomic<bool> isWS{ gpioSwitcher.m_isWs };
 
-    // std::thread typeListener([&isWS]() {
-    //     LedMapper::UdpSettings udpConf;
-    //     udpConf.receiveOn(STRIP_TYPE_PORT);
-    //     auto typeInput = LedMapper::UdpManager();
-    //     if (!typeInput.Setup(udpConf)) {
-    //         LOG(ERROR) << "Failed to bind to port=" << STRIP_TYPE_PORT;
-    //         exit(1);
-    //     }
-    //     std::string currentType{ "" };
-    //     char message[6];
-    //     while (continue_looping.load()) {
-    //         if (typeInput.Receive(message, 6) < 6)
-    //             continue;
-    //         std::string type(message, 6);
-    //         if (currentType != type) {
-    //             currentType = type;
-    //             LOG(DEBUG) << "Got new type " << type;
-    //             isWS.store(s_ledTypeToEnum[type] == TYPE_WS281X, std::memory_order_release);
-    //         }
-    //     };
-    // });
-
     LOG(INFO) << "Inited ledMapper Listener";
 
     /// break while loops on termination
@@ -213,6 +222,7 @@ int main()
     uint16_t ledsInChannel[] = { 0, 0, 0, 0, 0, 0 };
     char *pixels;
     char message[MAX_SENDBUFFER_SIZE];
+    unsigned char motor[2];
 
     while (continue_looping.load()) {
         /// update output route based on atomic bool changed in typeListener thread
@@ -268,19 +278,24 @@ int main()
                 chanPixelOffset += ledsInChannel[curChannel];
             }
 
-            /// Send data of the first pixel to mtor through SPI 
-            if (wiringPiSPIDataRW(0, (unsigned char*)pixels, 1) == -1)
+            int r = pixels[0];
+            int g = pixels[1];
+            int b = pixels[2];
+            /// Hue changes from 0 to 3564 in when get pixel from Resolume
+            uint16_t hue = rgb2hue(pixels[0], pixels[1], pixels[2]) * 10;
+            LOG(DEBUG) << "rgb2hue: " << hue << " [ " << r << ", " << g << ", " << b << " ]";
+            motor[0] = hue & 0xff; // lo
+            motor[1] = hue >> 8; // hi
+            /// Send data of the first pixel to mtor through SPI
+            if (wiringPiSPIDataRW(0, motor, 2) == -1)
                 LOG(ERROR) << "Error on wiringPi SPI out";
 
-            if (isWS) {     
-                LOG(DEBUG) << "WS OUT total leds=" << total_leds_num;
-
+            if (isWS) {
                 wsReturnStat = ws2811_render(&wsOut);
                 if (wsReturnStat != WS2811_SUCCESS) {
                     LOG(ERROR) << "ws2811_render failed: " << ws2811_get_return_t_str(wsReturnStat);
                     break;
                 }
-                LOG(DEBUG) << "WS OUT Rendered";
                 std::this_thread::sleep_for(microseconds(30 * max_leds_in_chan));
             }
             else {
