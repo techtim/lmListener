@@ -25,6 +25,7 @@
 #include <wiringPiSPI.h>
 
 #include "easylogging++.h"
+INITIALIZE_EASYLOGGINGPP
 
 using microseconds = std::chrono::microseconds;
 using milliseconds = std::chrono::milliseconds;
@@ -33,7 +34,7 @@ using namespace std::chrono_literals;
 // WS281X lib options
 #define GPIO_PIN_1 21
 #define GPIO_PIN_2 13
-#define DMA 10
+#define DMA 12
 #define STRIP_TYPE WS2811_STRIP_RGB // WS2812/SK6812RGB integrated chip+leds
 //#define STRIP_TYPE SK6812_STRIP_RGBW // SK6812RGBW
 
@@ -81,8 +82,14 @@ bool initGPIO()
     return true;
 }
 
+ws2811_led_t *ledsWs1, *ledsWs2;
+
 bool initWS(ws2811_t &ledstring)
 {
+    ledsWs1 = (ws2811_led_t*)malloc(sizeof(ws2811_led_t) * LED_COUNT_WS);
+    ledsWs2 = (ws2811_led_t*)malloc(sizeof(ws2811_led_t) * LED_COUNT_WS);
+
+    ledstring.render_wait_time = 0;
     ledstring.freq = WS2811_TARGET_FREQ;
     ledstring.dmanum = DMA;
     /// channel params sequence must fit its arrangement in ws2811_channel_t
@@ -91,17 +98,17 @@ bool initWS(ws2811_t &ledstring)
         0, // invert
         LED_COUNT_WS, // count
         STRIP_TYPE, // strip_type
-        nullptr,
+        ledsWs1,
         255, // brightness
     };
-    // ledstring.channel[1] = {
-    //     0, //GPIO_PIN_2, // gpionum
-    //     0, // invert
-    //     0, // LED_COUNT_WS, // count
-    //     0, // STRIP_TYPE, // strip_type
-    //     nullptr,
-    //     255, // brightness
-    // };
+    ledstring.channel[1] = {
+        0, //GPIO_PIN_2, // gpionum
+        0, // invert
+        0, // LED_COUNT_WS, // count
+        0, // STRIP_TYPE, // strip_type
+        ledsWs2,
+        255, // brightness
+    };
 
     ws2811_return_t ret;
     if ((ret = ws2811_init(&ledstring)) != WS2811_SUCCESS) {
@@ -174,8 +181,10 @@ int main()
 {
     el::Loggers::reconfigureAllLoggers(el::ConfigurationType::SubsecondPrecision, "3");
     el::Loggers::reconfigureAllLoggers(el::ConfigurationType::Format,
-                                       "%datetime{%H:%m:%s.%g} [%level] %msg");
+                                       "%datetime{%H:%m:%s.%g} [%level] %fbase:%line: %msg");
     el::Loggers::reconfigureAllLoggers(el::ConfigurationType::ToFile, "false");
+    el::Loggers::reconfigureAllLoggers(el::ConfigurationType::ToStandardOutput, "true");
+    el::Loggers::reconfigureAllLoggers(el::ConfigurationType::MaxLogFileSize, "4096");
 
     /// WS (one wire) output setup
     ws2811_t wsOut;
@@ -265,7 +274,7 @@ int main()
                     //        pixels[i * 3 + 0], pixels[i * 3 + 1],
                     //        pixels[i * 3 + 2]);
 
-                    if (isWS) {
+                    if (isWS && (i - chanPixelOffset) < LED_COUNT_WS) {
                         wsOut.channel[curChannel].leds[i - chanPixelOffset]
                             = (pixels[i * 3 + 0] << 16) | (pixels[i * 3 + 1] << 8)
                             | pixels[i * 3 + 2];
@@ -296,7 +305,6 @@ int main()
                     LOG(ERROR) << "ws2811_render failed: " << ws2811_get_return_t_str(wsReturnStat);
                     break;
                 }
-                std::this_thread::sleep_for(microseconds(30 * max_leds_in_chan));
             }
             else {
                 for (curChannel = 0; curChannel < chan_cntr; ++curChannel) {

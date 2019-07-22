@@ -7,8 +7,6 @@
 #include <netinet/in.h>
 #include <netinet/ip.h>
 
-INITIALIZE_EASYLOGGINGPP
-
 namespace LedMapper {
 
 //--------------------------------------------------------------------------------
