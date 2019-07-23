@@ -58,10 +58,10 @@ static std::map<int, bool> s_gpioSwitches
 
 static const std::string s_spiDevice = "/dev/spidev0.0";
 
-enum { TYPE_WS281X, TYPE_SK9822 };
+enum { TYPE_WS281X, TYPE_SK9822, TYPE_LPD8806 };
 
 static std::map<std::string, int> s_ledTypeToEnum
-    = { { "WS281X", TYPE_WS281X }, { "SK9822", TYPE_SK9822 } };
+    = { { "WS281X", TYPE_WS281X }, { "SK9822", TYPE_SK9822 }, { "LPD880", TYPE_LPD8806 } };
 
 bool initGPIO()
 {
