@@ -32,9 +32,9 @@ using milliseconds = std::chrono::milliseconds;
 using namespace std::chrono_literals;
 
 // WS281X lib options
-#define GPIO_PIN_1 21
+#define GPIO_PIN_1 12 // 21//12
 #define GPIO_PIN_2 13
-#define DMA 12
+#define DMA 10
 #define STRIP_TYPE WS2811_STRIP_RGB // WS2812/SK6812RGB integrated chip+leds
 //#define STRIP_TYPE SK6812_STRIP_RGBW // SK6812RGBW
 
@@ -78,6 +78,9 @@ bool initGPIO()
     //     digitalWrite(gpio.first, (gpio.second ? HIGH : LOW));
     // }
 
+    // wiringPiSetup;
+    // pinMode(21, INPUT);
+    
     LOG(INFO) << "GPIO Inited";
     return true;
 }
@@ -229,7 +232,7 @@ int main()
     size_t chan_cntr = 0, curChannel;
     size_t headerByteOffset = 0, chanPixelOffset = 0;
     uint16_t ledsInChannel[] = { 0, 0, 0, 0, 0, 0 };
-    char *pixels;
+    char *pixels;   
     char message[MAX_SENDBUFFER_SIZE];
     unsigned char motor[2];
 
@@ -273,9 +276,9 @@ int main()
                     // printf("%i : %i -> %d  %d  %d\n", curChannel, i - chanPixelOffset,
                     //        pixels[i * 3 + 0], pixels[i * 3 + 1],
                     //        pixels[i * 3 + 2]);
-
+                    
                     if (isWS && (i - chanPixelOffset) < LED_COUNT_WS) {
-                        wsOut.channel[curChannel].leds[i - chanPixelOffset]
+                            wsOut.channel[curChannel].leds[i - chanPixelOffset]
                             = (pixels[i * 3 + 0] << 16) | (pixels[i * 3 + 1] << 8)
                             | pixels[i * 3 + 2];
                     }
@@ -292,11 +295,11 @@ int main()
             int b = pixels[2];
             /// Hue changes from 0 to 3564 in when get pixel from Resolume
             uint16_t hue = rgb2hue(pixels[0], pixels[1], pixels[2]) * 10;
-            LOG(DEBUG) << "rgb2hue: " << hue << " [ " << r << ", " << g << ", " << b << " ]";
-            motor[0] = hue & 0xff; // lo
-            motor[1] = hue >> 8; // hi
+            LOG(DEBUG) << "rgb2hue: " << (int)hue << " [ " << r << ", " << g << ", " << b << " ]";
+            motor[0] = pixels[0]; // hue & 0xff; // lo
+            motor[1] = pixels[0]; //hue >> 8; // hi
             /// Send data of the first pixel to mtor through SPI
-            if (wiringPiSPIDataRW(0, motor, 2) == -1)
+            if (wiringPiSPIDataRW(0, motor, 1) == -1)
                 LOG(ERROR) << "Error on wiringPi SPI out";
 
             if (isWS) {
@@ -305,6 +308,7 @@ int main()
                     LOG(ERROR) << "ws2811_render failed: " << ws2811_get_return_t_str(wsReturnStat);
                     break;
                 }
+                LOG(DEBUG) << "leds send:" << ledsInChannel[0]; 
             }
             else {
                 for (curChannel = 0; curChannel < chan_cntr; ++curChannel) {

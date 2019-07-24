@@ -7,6 +7,6 @@ all:
 
 release:
 	g++ lmListener.cpp UdpManager.cpp spi/sk9822led.c easylogging++.cc ./rpi_ws281x/libws2811.a \
-	-L -lws2811 -L./spi -lwiringPi $(CXXFLAGS) -DNDEBUG \
+	-L -lws2811 -L./spi -lwiringPi $(CXXFLAGS) -DNDEBUG -O2 \
 	-DELPP_THREAD_SAFE -DELPP_DISABLE_DEBUG_LOGS -DELPP_NO_DEFAULT_LOG_FILE \
 	-o lmListener
