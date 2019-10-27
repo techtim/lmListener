@@ -102,7 +102,7 @@ bool initWS(ws2811_t &ledstring)
         LED_COUNT_WS, // count
         STRIP_TYPE, // strip_type
         ledsWs1,
-        255, // brightness
+        100, // brightness
     };
     ledstring.channel[1] = {
         0, //GPIO_PIN_2, // gpionum
@@ -165,6 +165,23 @@ double rgb2hue(uint8_t r, uint8_t g, uint8_t b)
         hue += 360.0;
 
     return hue;
+}
+
+void testAnim(ws2811_t &wsOut, size_t &cntr) {
+    char val = static_cast<char>(static_cast<float>(cntr*2));
+
+    if (cntr > 126)
+        val = static_cast<char>(255);
+    if (cntr > 130)
+        cntr = 0;
+
+    for (size_t i= 0; i < LED_COUNT_WS; ++i )
+         wsOut.channel[0].leds[i] = (val << 16) | (val << 8) | val;
+
+    ws2811_return_t wsReturnStat = ws2811_render(&wsOut);
+    if (wsReturnStat != WS2811_SUCCESS) {
+        LOG(ERROR) << "ws2811_render failed: " << ws2811_get_return_t_str(wsReturnStat);            
+    }
 }
 
 void stop_program(int sig)
@@ -236,7 +253,13 @@ int main()
     char message[MAX_SENDBUFFER_SIZE];
     unsigned char motor[2];
 
+    size_t animationCntr=0;
+
     while (continue_looping.load()) {
+        // ++animationCntr;
+        // testAnim(wsOut, animationCntr);
+        // continue;
+
         /// update output route based on atomic bool changed in typeListener thread
         gpioSwitcher.switchWsOut(isWS.load(std::memory_order_acquire));
 
@@ -281,6 +304,10 @@ int main()
                             wsOut.channel[curChannel].leds[i - chanPixelOffset]
                             = (pixels[i * 3 + 0] << 16) | (pixels[i * 3 + 1] << 8)
                             | pixels[i * 3 + 2];
+
+                            // (static_cast<char>(pixels[i * 3 + 0] * 0.6f) << 16) 
+                            // | (static_cast<char>(pixels[i * 3 + 1] * 0.6f) << 8)
+                            // | static_cast<char>(pixels[i * 3 + 2] * 0.6f);
                     }
                     else {
                         // spiOut.writeLed(curChannel, i - chanPixelOffset, pixels[i * 3 + 0],
