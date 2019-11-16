@@ -2,7 +2,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#include "sk9822led.h"
+// #include "sk9822led.h"
+#include "p9813led.h"
 #include "../easylogging++.h"
 
 struct SpiOut
@@ -14,7 +15,7 @@ struct SpiOut
     
     ~SpiOut() { 
         for (auto &buf : buffers) 
-            sk9822_free(&buf); 
+            p9813_free(&buf); 
     }
 
     bool init(const std::string &device){
@@ -34,9 +35,9 @@ struct SpiOut
     }
 
     bool addChannel(size_t maxLedsNumber){
-        sk9822_buffer buf;
+        p9813_buffer buf;
         /* Initialize pixel buffer */
-        if (sk9822_init(&buf, maxLedsNumber) < 0) {
+        if (p9813_init(&buf, maxLedsNumber) < 0) {
             LOG(ERROR) << "SPI Pixel buffer initialization error: Not enough memory.";
             return false;
         }
@@ -50,11 +51,13 @@ struct SpiOut
             LOG(ERROR) << "SPI writeLed out of range chan=" << chan << " index=" << index;
             return;
         }
+
         auto &buf = buffers[chan];
-        buf.pixels[index].f = 255;
-        buf.pixels[index].r = red;
-        buf.pixels[index].g = green;
-        buf.pixels[index].b = blue;
+        write_color(&(buf.pixels[index]), red, green, blue);
+        // buf.pixels[index].f = 255;
+        // buf.pixels[index].r = red;
+        // buf.pixels[index].g = green;
+        // buf.pixels[index].b = blue;
     }
 
     void send(size_t chan, size_t ledsNumber){
@@ -67,5 +70,5 @@ struct SpiOut
     int fd;
     size_t size;
     std::vector<bool> isDirtyBuffers;
-    std::vector<sk9822_buffer> buffers;
+    std::vector<p9813_buffer> buffers;
 };

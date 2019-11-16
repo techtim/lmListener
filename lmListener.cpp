@@ -58,7 +58,7 @@ static std::map<int, bool> s_gpioSwitches = { { PIN_SWITCH_1, false }, // false(
                                               { PIN_SWITCH_SPI, true } }; // send spi to chan 1 (true) or chan 2 (false)
 
 static const std::string s_spiDevice = "/dev/spidev0.0";
-
+    
 enum { TYPE_WS281X, TYPE_SK9822 };
 
 static std::map<std::string, int> s_ledTypeToEnum = { { "WS281X", TYPE_WS281X }, { "SK9822", TYPE_SK9822 } };
