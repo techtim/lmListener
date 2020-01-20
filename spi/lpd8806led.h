@@ -23,11 +23,9 @@
  * with a properly calculated flag byte.
  */
 typedef struct _lpd8806_color {
-  // uint8_t flag;
-  
-  uint8_t green;
-  uint8_t red;
-  uint8_t blue;
+  uint8_t g;
+  uint8_t r;
+  uint8_t b;
 } lpd8806_color;
 
 /* The lpd8806_buffer structure is a buffer in which pixel data is stored in
@@ -39,7 +37,7 @@ typedef struct _lpd8806_color {
  * this structure points to the array of pixels.
  */
 typedef struct _lpd8806_buffer {
-  int leds; /* number of LEDS */
+  size_t leds; /* number of LEDS */
   size_t size; /* size of buffer */
   lpd8806_color *buffer; /* pointer to buffer memory */
   lpd8806_color *pixels; /* pointer to start of pixels */

@@ -25,16 +25,19 @@ static uint8_t gamma_table_blue[256];
 int lpd8806_init(lpd8806_buffer *buf, int leds) {
   buf->leds = leds;
   buf->size = (leds+3)*sizeof(lpd8806_color);
+  printf("buf->size = %i\n", buf->size);
   buf->buffer = (lpd8806_color*)malloc(buf->size);
   if(buf->buffer==NULL) {
+    printf("lpd8806_init malloc FAILED\n");
     return -1;
   }
 
-  buf->pixels = buf->buffer+3;
+  buf->pixels = buf->buffer;
+  ++buf->pixels;
 
   write_frame(buf->buffer,0x00,0x00,0x00);
-  write_frame(buf->pixels+leds,0x00,0x00,0x00);
-  write_frame(buf->pixels+leds+1,0x00,0x00,0x00);
+  write_frame(&buf->pixels[leds],0x00,0x00,0x00);
+  write_frame(&buf->pixels[leds+1],0x00,0x00,0x00);
 
   return 0;
 }
@@ -85,14 +88,11 @@ void lpd8806_free(lpd8806_buffer *buf) {
 
 void write_frame(lpd8806_color *p, uint8_t red, uint8_t green, uint8_t blue) {
   // p->flag=flag;
-  p->blue =  0x80 | (blue >> 1);
-  p->green =  0x80 | (green >> 1);
-  p->red =  0x80 | (red >> 1);
+  p->b =  0x80 | (blue >> 1);
+  p->g =  0x80 | (green >> 1);
+  p->r =  0x80 | (red >> 1);
 
-  // _ledBuffer[iLed*3]   = 0x80 | (rgb.red   >> 1);
-  //   _ledBuffer[iLed*3+1] = 0x80 | (rgb.green >> 1);
-  //   _ledBuffer[iLed*3+2] = 0x80 | (rgb.blue  >> 1);
-  // printf ("index : %i %i %i %i\n",p, p->red  , p->green, p->blue);
+  // printf ("index : %i %i %i %i\n",p, p->r, p->g, p->b);
 }
 
 uint8_t make_flag(uint8_t red, uint8_t green, uint8_t blue) {
