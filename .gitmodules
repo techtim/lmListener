@@ -2,5 +2,5 @@
 	path = thirdparty/rpi_ws281x
 	url = https://github.com/jgarff/rpi_ws281x.git
 [submodule "thirdparty/easyloggingpp"]
-        path = thirdparty/easyloggingpp
-        url = https://github.com/amrayn/easyloggingpp.git
+	path = thirdparty/easyloggingpp
+	url = https://github.com/amrayn/easyloggingpp
