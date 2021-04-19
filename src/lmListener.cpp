@@ -4,47 +4,19 @@
 // through 2 switches
 //
 */
-
-#include <atomic>
-#include <chrono>
-#include <iostream>
-#include <map>
-#include <signal.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <thread>
-#include <unistd.h>
-#include <vector>
-
-#include "ws2811.h"
-#include "spi/SpiOut.h"
+#include "Common.h"
 #include "UdpManager.h"
+#include "spi/SpiOut.h"
+#include "ws2811.h"
+
+#if (!defined(AMD64))
 #include <wiringPi.h>
 #include <wiringPiSPI.h>
 
+#endif
+
 #include "easylogging++.h"
 INITIALIZE_EASYLOGGINGPP
-
-using microseconds = std::chrono::microseconds;
-using milliseconds = std::chrono::milliseconds;
-using namespace std::chrono_literals;
-
-// WS281X lib options
-#define GPIO_PIN_1 12 // 21//12
-#define GPIO_PIN_2 13
-#define DMA 10
-#define STRIP_TYPE WS2811_STRIP_RGB // WS2812/SK6812RGB integrated chip+leds
-//#define STRIP_TYPE SK6812_STRIP_RGBW // SK6812RGBW
-
-constexpr size_t MAX_CHANNELS = 2;
-constexpr size_t LED_COUNT_WS = 1000;
-constexpr size_t LED_COUNT_SPI = 2000;
-constexpr size_t MAX_SENDBUFFER_SIZE = 4096 * 3; // 2 SPI channels RGB
-
-constexpr int FRAME_IN_PORT = 3001;
-constexpr int STRIP_TYPE_PORT = 3002;
 
 std::atomic<bool> continue_looping{ true };
 int clear_on_exit = 0;
@@ -65,6 +37,8 @@ static std::map<std::string, int> s_ledTypeToEnum = { { "WS281X", TYPE_WS281X },
 
 bool initGPIO()
 {
+
+#if (!defined(AMD64))
     if (wiringPiSetupGpio() != 0) {
         LOG(ERROR) << "Failed to init wiringPi SPI";
         return false;
@@ -74,6 +48,7 @@ bool initGPIO()
         LOG(INFO) << "Pin #" << std::to_string(gpio.first) << " -> " << (gpio.second ? "HIGH" : "LOW");
         digitalWrite(gpio.first, (gpio.second ? HIGH : LOW));
     }
+#endif
 
     LOG(INFO) << "GPIO Inited";
     return true;
@@ -83,6 +58,9 @@ ws2811_led_t *ledsWs1, *ledsWs2;
 
 bool initWS(ws2811_t &ledstring)
 {
+#if (defined(AMD64))
+    return true;
+#endif
     ledsWs1 = (ws2811_led_t *)malloc(sizeof(ws2811_led_t) * LED_COUNT_WS);
     ledsWs2 = (ws2811_led_t *)malloc(sizeof(ws2811_led_t) * LED_COUNT_WS);
 
@@ -128,9 +106,12 @@ struct GpioOutSwitcher {
             return;
         LOG(DEBUG) << "switch to WS = " << isWS;
         m_isWs = isWS;
+
+#if (!defined(AMD64))
         digitalWrite(PIN_SWITCH_1, m_isWs ? LOW : HIGH);
         digitalWrite(PIN_SWITCH_2, m_isWs ? LOW : HIGH);
         std::this_thread::sleep_for(milliseconds(500));
+#endif
     }
     bool m_isWs;
 };
@@ -173,10 +154,12 @@ void testAnim(ws2811_t &wsOut, size_t &cntr)
     for (size_t i = 0; i < LED_COUNT_WS; ++i)
         wsOut.channel[0].leds[i] = (val << 16) | (val << 8) | val;
 
+#if (!defined(AMD64))
     ws2811_return_t wsReturnStat = ws2811_render(&wsOut);
     if (wsReturnStat != WS2811_SUCCESS) {
         LOG(ERROR) << "ws2811_render failed: " << ws2811_get_return_t_str(wsReturnStat);
     }
+#endif
 }
 
 void stop_program(int sig)
@@ -330,6 +313,7 @@ int main()
                 chanPixelOffset += ledsInChannel[curChannel];
             }
 
+#if (!defined(AMD64))
             if (isWS) {
                 wsReturnStat = ws2811_render(&wsOut);
                 if (wsReturnStat != WS2811_SUCCESS) {
@@ -347,6 +331,7 @@ int main()
                 }
                 std::this_thread::sleep_for(microseconds(max_leds_in_chan));
             }
+#endif
         }
     }
 
@@ -355,7 +340,9 @@ int main()
     if (typeListener.joinable())
         typeListener.join();
 
+#if (!defined(AMD64))
     ws2811_fini(&wsOut);
+#endif
 
     return 0;
 }

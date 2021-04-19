@@ -27,13 +27,14 @@ add_definitions(-DELPP_THREAD_SAFE -DELPP_FORCE_USE_STD_THREAD -DELPP_STL_LOGGIN
 add_library(easyloggingpp STATIC ${CMAKE_SOURCE_DIR}/thirdparty/easyloggingpp/src/easylogging++.cc)
 target_include_directories(${LM_LIB_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/thirdparty/easyloggingpp/src/)
 
-target_include_directories(${LM_LIB_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/thirdparty/rpi_ws281x/*.h)
+target_include_directories(${LM_LIB_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/thirdparty/rpi_ws281x/)
 set(WS281X_STATIC_LIB "")
 
 # Add static WS281x lib
-if (NOT AMD64)
+if (AMD64)
+    add_definitions(-DAMD64=1)
+else()
     message("** COMPILE FOR ARM")
-
     set(WS281X_STATIC_LIB "${CMAKE_SOURCE_DIR}/thirdparty/rpi_ws281x/libws2811.a")
 endif()
 
