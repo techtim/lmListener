@@ -192,8 +192,12 @@ int main()
     }
 
     SpiOut spiOut;
+
+#if (!defined(AMD64))
     if (!spiOut.init(s_spiDevice))
         exit(1);
+#endif
+
     /// add two channels to spi out,
     /// further can select kind of channel for different ICs
     spiOut.addChannel(LED_COUNT_SPI);

@@ -1,27 +1,29 @@
+#include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
-#include <fcntl.h>
 
 #include "easylogging++.h"
 #include "sk9822led.h"
 
-struct SpiOut
-{
-    SpiOut() 
-    : fd(-1)
-    , size(0)
-    {}
-    
-    ~SpiOut() { 
-        for (auto &buf : buffers) 
-            sk9822_free(&buf); 
+struct SpiOut {
+    SpiOut()
+        : fd(-1)
+        , size(0)
+    {
     }
 
-    bool init(const std::string &device){
+    ~SpiOut()
+    {
+        for (auto &buf : buffers)
+            sk9822_free(&buf);
+    }
+
+    bool init(const std::string &device)
+    {
         /* Open the device file using Low-Level IO */
         fd = open(device.c_str(), O_WRONLY);
         if (fd < 0) {
-            LOG(ERROR) << "Error open spi: " << errno  << "-" << strerror(errno);
+            LOG(ERROR) << "Error open spi: " << errno << "-" << strerror(errno);
             return false;
         }
         /* Initialize the SPI bus for Total Control Lighting */
@@ -33,19 +35,25 @@ struct SpiOut
         return true;
     }
 
-    bool addChannel(size_t maxLedsNumber){
+    bool addChannel(size_t maxLedsNumber)
+    {
         sk9822_buffer buf;
+
+#if (!defined(AMD64))
         /* Initialize pixel buffer */
         if (sk9822_init(&buf, maxLedsNumber) < 0) {
             LOG(ERROR) << "SPI Pixel buffer initialization error: Not enough memory.";
             return false;
         }
+#endif
+
         LOG(INFO) << "Added SPI channel with " << maxLedsNumber << " leds";
         buffers.emplace_back(std::move(buf));
         return true;
     }
 
-    void writeLed(size_t chan, size_t index, uint8_t red, uint8_t green, uint8_t blue) {
+    void writeLed(size_t chan, size_t index, uint8_t red, uint8_t green, uint8_t blue)
+    {
         if (chan > buffers.size() || index > buffers[chan].leds) {
             LOG(ERROR) << "SPI writeLed out of range chan=" << chan << " index=" << index;
             return;
@@ -57,7 +65,8 @@ struct SpiOut
         buf.pixels[index].b = blue;
     }
 
-    void send(size_t chan, size_t ledsNumber){
+    void send(size_t chan, size_t ledsNumber)
+    {
         if (fd < 0 || chan >= buffers.size()) {
             LOG(ERROR) << "SPI not initialized or wrong channel:" << chan;
         }
