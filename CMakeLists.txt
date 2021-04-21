@@ -12,7 +12,7 @@ release:
 	-o lmListener
 ]]
 
-# Cmake CXX_STANDARD 17 support starts from 3.8
+#Cmake CXX_STANDARD 17 support starts from 3.8
 cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 
 project(LedmapListener
@@ -20,7 +20,7 @@ project(LedmapListener
 
 option(PROFILE_MODE "Enable profiling flags '-pg -g'" OFF)
 
-# Variables for cross compilation
+#Variables for cross compilation
 set(ARM_TOOLCHAIN_PATH "" CACHE STRING "Path to ARM TOOLCHAIN for cross compilation")
 set(ARM_LLVM_PATH "" CACHE STRING "Path to LLVM prebuild for ARM for cross compilation")
 
@@ -32,7 +32,7 @@ if (NOT ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang"))
     message(FATAL_ERROR "CXX COMPILER must be Clang.")
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -Wall -Wextra -pedantic -fcolor-diagnostics")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -Wall -Wextra -fcolor-diagnostics -Wmissing-field-initializers")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++ -lc++abi -fuse-ld=lld")
 
 if (${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS 9)

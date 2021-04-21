@@ -4,3 +4,9 @@
 [submodule "thirdparty/easyloggingpp"]
 	path = thirdparty/easyloggingpp
 	url = https://github.com/amrayn/easyloggingpp
+[submodule "include/readerwriterqueue"]
+	path = include/readerwriterqueue
+	url = https://github.com/cameron314/readerwriterqueue.git
+[submodule "thirdparty/asio"]
+	path = thirdparty/asio
+	url = https://github.com/chriskohlhoff/asio
