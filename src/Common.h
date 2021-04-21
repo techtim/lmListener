@@ -33,7 +33,8 @@ using namespace std::chrono_literals;
 
 inline constexpr size_t s_dmxUniverseSize = 512;
 inline constexpr size_t s_recordFps = 120;
-inline constexpr size_t MAX_CHANNELS = 2;
+inline constexpr size_t s_maxChannelsIn = 16;
+inline constexpr size_t s_maxChannelsOut = 2;
 inline constexpr size_t LED_COUNT_WS = 1000;
 inline constexpr size_t LED_COUNT_SPI = 2000;
 inline constexpr size_t MAX_SENDBUFFER_SIZE = 4096 * 3; // 2 SPI channels RGB

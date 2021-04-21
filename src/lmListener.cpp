@@ -8,7 +8,7 @@
 #include "RpiUtils.h"
 #include "UdpManager.h"
 #include "easylogging++.h"
-#include "io/Input.h"
+#include "io/InputThread.h"
 #include "spi/SpiOut.h"
 
 INITIALIZE_EASYLOGGINGPP
@@ -157,8 +157,8 @@ int main()
             /// pixels pointer stores point to pixel data in message starting after offset
             pixels = message + headerByteOffset;
 
-            if (chan_cntr > MAX_CHANNELS)
-                chan_cntr = MAX_CHANNELS;
+            if (chan_cntr > s_maxChannelsOut)
+                chan_cntr = s_maxChannelsOut;
 
             total_leds_num = (received - headerByteOffset) / 3;
 

@@ -39,11 +39,13 @@ target_include_directories(asio INTERFACE thirdparty/asio/asio/include)
 target_link_libraries(asio INTERFACE Threads::Threads)
 
 target_include_directories(${LM_LIB_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/thirdparty/rpi_ws281x/)
+file(REMOVE ${CMAKE_SOURCE_DIR}/thirdparty/rpi_ws281x/version)
 
 # Add static WS281x lib
 if (AMD64)
     add_definitions(-DAMD64=1)
     set(WS281X_STATIC_LIB "")
+    message("** Build for desktop Linux")
 else()
     message("** COMPILE FOR ARM")
     set(WS281X_STATIC_LIB "${CMAKE_SOURCE_DIR}/thirdparty/rpi_ws281x/libws2811.a")
