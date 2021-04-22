@@ -1,14 +1,15 @@
 #pragma once
 
 #include <atomic>
+#include <cassert>
 #include <chrono>
+#include <csignal>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <iostream>
 #include <map>
-#include <signal.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <string>
 #include <thread>
 #include <unistd.h>
 #include <vector>
@@ -33,9 +34,10 @@ using namespace std::chrono_literals;
 
 inline constexpr size_t s_dmxUniverseSize = 512;
 inline constexpr size_t s_recordFps = 120;
-inline constexpr size_t s_maxChannelsIn = 16;
+inline constexpr size_t s_maxChannelsIn = 12;
 inline constexpr size_t s_maxChannelsOut = 2;
-inline constexpr size_t LED_COUNT_WS = 1000;
+inline constexpr size_t s_maxUniversesInOut = s_maxChannelsIn / s_maxChannelsOut;
+inline constexpr size_t LED_COUNT_WS = 1020;
 inline constexpr size_t LED_COUNT_SPI = 2000;
 inline constexpr size_t MAX_SENDBUFFER_SIZE = 4096 * 3; // 2 SPI channels RGB
 

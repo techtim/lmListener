@@ -66,9 +66,7 @@ static inline bool initGPIO()
 
 static inline bool initWS(ws2811_led_t *ledsWs1, ws2811_led_t *ledsWs2, ws2811_t &ledstring)
 {
-#if (defined(AMD64))
-    return true;
-#endif
+
     ledsWs1 = (ws2811_led_t *)malloc(sizeof(ws2811_led_t) * LED_COUNT_WS);
     ledsWs2 = (ws2811_led_t *)malloc(sizeof(ws2811_led_t) * LED_COUNT_WS);
 
@@ -93,6 +91,10 @@ static inline bool initWS(ws2811_led_t *ledsWs1, ws2811_led_t *ledsWs2, ws2811_t
         ledsWs2,
         255, // brightness
     };
+
+#if (defined(AMD64))
+    return true;
+#endif
 
     ws2811_return_t ret;
     if ((ret = ws2811_init(&ledstring)) != WS2811_SUCCESS) {

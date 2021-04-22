@@ -8,13 +8,15 @@ find_package(Threads REQUIRED)
 
 FILE(GLOB sources ${CMAKE_SOURCE_DIR}/src/*.cpp)
 list(REMOVE_ITEM sources "${CMAKE_SOURCE_DIR}/src/lmListener.cpp")
-FILE(GLOB spi ${CMAKE_SOURCE_DIR}/spi/*.c)
-FILE(GLOB io ${CMAKE_SOURCE_DIR}/io/*.cpp)
-FILE(GLOB network ${CMAKE_SOURCE_DIR}/network/*.cpp)
+FILE(GLOB spi ${CMAKE_SOURCE_DIR}/src/spi/*.c)
+FILE(GLOB io ${CMAKE_SOURCE_DIR}/src/io/*.cpp)
+FILE(GLOB network ${CMAKE_SOURCE_DIR}/src/network/*.cpp)
 
 set(LM_LIB_NAME "${CMAKE_PROJECT_NAME}Lib")
-
-add_library(${LM_LIB_NAME}
+message("${sources}
+        ${spi}
+        ${io}")
+add_library(${LM_LIB_NAME} STATIC
         ${sources}
         ${spi}
         ${io}
@@ -33,10 +35,14 @@ add_library(easyloggingpp STATIC ${CMAKE_SOURCE_DIR}/thirdparty/easyloggingpp/sr
 target_include_directories(${LM_LIB_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/thirdparty/easyloggingpp/src/)
 
 # ASIO lib
-add_library(asio INTERFACE)
-#target_compile_options(asio INTERFACE ASIO_STANDALONE)
-target_include_directories(asio INTERFACE thirdparty/asio/asio/include)
-target_link_libraries(asio INTERFACE Threads::Threads)
+add_definitions(-DASIO_STANDALONE -DASIO_HAS_STD_ADDRESSOF -DASIO_HAS_STD_ARRAY -DASIO_HAS_CSTDINT)
+set(ASIO_ROOT ${CMAKE_SOURCE_DIR}/thirdparty/asio/asio)
+add_library(ASIO::ASIO INTERFACE IMPORTED GLOBAL)
+set_target_properties(ASIO::ASIO PROPERTIES
+    INTERFACE_COMPILE_DEFINITIONS "ASIO_STANDALONE"
+    INTERFACE_INCLUDE_DIRECTORIES "${ASIO_ROOT}/include"
+)
+target_link_libraries(ASIO::ASIO INTERFACE Threads::Threads)
 
 target_include_directories(${LM_LIB_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/thirdparty/rpi_ws281x/)
 file(REMOVE ${CMAKE_SOURCE_DIR}/thirdparty/rpi_ws281x/version)
@@ -51,10 +57,10 @@ else()
     set(WS281X_STATIC_LIB "${CMAKE_SOURCE_DIR}/thirdparty/rpi_ws281x/libws2811.a")
 endif()
 
-target_link_libraries(${LM_LIB_NAME} PRIVATE
+target_link_libraries(${LM_LIB_NAME} PUBLIC
         easyloggingpp
-        asio
         Threads::Threads
+        ASIO::ASIO
         ${WS281X_STATIC_LIB}
         )
 
