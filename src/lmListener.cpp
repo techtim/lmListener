@@ -138,15 +138,21 @@ int main()
         /// wait for frames
         ledsInChannel.fill(0);
         while (--framesAtTime >= 0 && m_recordQueue.try_dequeue(m_recordFrame)) {
-            uint16_t outChannel = m_recordFrame.universe < s_maxUniversesInOut ? 0 : 1;
-            uint16_t pixelOffset = (m_recordFrame.universe % s_maxUniversesInOut) * s_pixelsInUniverse;
+            if (m_recordFrame.universe >= s_maxChannelsIn)
+                continue;
+            uint16_t outChannel = m_recordFrame.universe < s_maxUniversesPerOut ? 0 : 1;
+            uint16_t pixelOffset = (m_recordFrame.universe % s_maxUniversesPerOut) * s_pixelsInUniverse;
+            if (pixelOffset + s_pixelsInUniverse > ledsInChannel.at(outChannel)) {
+                ledsInChannel.at(outChannel) = pixelOffset + s_pixelsInUniverse;
+                wsOut.channel[outChannel].count = ledsInChannel.at(outChannel);
+                LOG(INFO) << "Uni: " << m_recordFrame.universe << " offset: " << pixelOffset 
+                    << " to chan: " << outChannel;
+            }
+            
             for (size_t i = 0; i < s_pixelsInUniverse; i += 3)
                 wsOut.channel[outChannel].leds[pixelOffset++] = (m_recordFrame.data.at(i * 3 + 0) << 16)
                                                                 | (m_recordFrame.data.at(i * 3 + 1) << 8)
                                                                 | m_recordFrame.data.at(i * 3 + 2);
-            if (pixelOffset + s_pixelsInUniverse > ledsInChannel.at(outChannel))
-                ledsInChannel.at(outChannel) = pixelOffset + s_pixelsInUniverse;
-            wsOut.channel[outChannel].count = ledsInChannel.at(outChannel);
         }
 
 #if (!defined(AMD64))
@@ -162,7 +168,7 @@ int main()
             for (size_t curChannel = 0; curChannel < s_maxChannelsOut; ++curChannel) {
                 if (ledsInChannel[curChannel] == 0)
                     continue;
-                digitalWrite(PIN_SWITCH_SPI, curChannel == 0 ? HIGH : LOW);
+//                digitalWrite(PIN_SWITCH_SPI, curChannel == 0 ? HIGH : LOW);
                 spiOut.send(curChannel, ledsInChannel[curChannel]);
             }
             std::this_thread::sleep_for(microseconds(LED_COUNT_SPI));

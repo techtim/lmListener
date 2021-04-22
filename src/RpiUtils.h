@@ -7,10 +7,10 @@
 #include "easylogging++.h"
 #include "ws2811.h"
 
-#if (!defined(AMD64))
-#include <wiringPi.h>
-#include <wiringPiSPI.h>
-#endif
+// #if (!defined(AMD64))
+// #include <wiringPi.h>
+// #include <wiringPiSPI.h>
+// #endif
 
 namespace LedMapper {
 
@@ -37,9 +37,9 @@ struct GpioOutSwitcher {
         m_isWs = isWS;
 
 #if (!defined(AMD64))
-        digitalWrite(PIN_SWITCH_1, m_isWs ? LOW : HIGH);
-        digitalWrite(PIN_SWITCH_2, m_isWs ? LOW : HIGH);
-        std::this_thread::sleep_for(milliseconds(500));
+//        digitalWrite(PIN_SWITCH_1, m_isWs ? LOW : HIGH);
+//        digitalWrite(PIN_SWITCH_2, m_isWs ? LOW : HIGH);
+//        std::this_thread::sleep_for(milliseconds(500));
 #endif
     }
     bool m_isWs;
@@ -48,17 +48,17 @@ struct GpioOutSwitcher {
 static inline bool initGPIO()
 {
 
-#if (!defined(AMD64))
-    if (wiringPiSetupGpio() != 0) {
-        LOG(ERROR) << "Failed to init wiringPi SPI";
-        return false;
-    }
-    for (auto &gpio : s_gpioSwitches) {
-        pinMode(gpio.first, OUTPUT);
-        LOG(INFO) << "Pin #" << std::to_string(gpio.first) << " -> " << (gpio.second ? "HIGH" : "LOW");
-        digitalWrite(gpio.first, (gpio.second ? HIGH : LOW));
-    }
-#endif
+//#if (!defined(AMD64))
+//    if (wiringPiSetupGpio() != 0) {
+//        LOG(ERROR) << "Failed to init wiringPi SPI";
+//        return false;
+//    }
+//    for (auto &gpio : s_gpioSwitches) {
+//        pinMode(gpio.first, OUTPUT);
+//        LOG(INFO) << "Pin #" << std::to_string(gpio.first) << " -> " << (gpio.second ? "HIGH" : "LOW");
+//        digitalWrite(gpio.first, (gpio.second ? HIGH : LOW));
+//    }
+//#endif
 
     LOG(INFO) << "GPIO Inited";
     return true;
