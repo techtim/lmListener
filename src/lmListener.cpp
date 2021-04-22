@@ -165,7 +165,7 @@ int main()
                 digitalWrite(PIN_SWITCH_SPI, curChannel == 0 ? HIGH : LOW);
                 spiOut.send(curChannel, ledsInChannel[curChannel]);
             }
-            std::this_thread::sleep_for(microseconds(max_leds_in_chan));
+            std::this_thread::sleep_for(microseconds(LED_COUNT_SPI));
         }
 #endif
     }
