@@ -55,6 +55,9 @@ if (AMD64)
 else()
     message("** COMPILE FOR ARM")
     set(WS281X_STATIC_LIB "${CMAKE_SOURCE_DIR}/thirdparty/rpi_ws281x/libws2811.a")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lwiringPi")
+    find_library(WIRINGPI_LIBRARIES NAMES wiringPi)
+    target_link_libraries(${LM_LIB_NAME} PUBLIC ${WIRINGPI_LIBRARIES})
 endif()
 
 target_link_libraries(${LM_LIB_NAME} PUBLIC
