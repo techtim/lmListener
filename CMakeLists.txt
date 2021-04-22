@@ -32,7 +32,7 @@ if (NOT ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang"))
     message(FATAL_ERROR "CXX COMPILER must be Clang.")
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -Wall -Wextra -fcolor-diagnostics -Wmissing-field-initializers -Wno-range-loop-construct")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -Wall -Wextra -fcolor-diagnostics -Wmissing-field-initializers -Wno-range-loop-analysis")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++ -lc++abi -fuse-ld=lld")
 
 if (${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS 9)

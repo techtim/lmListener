@@ -122,6 +122,7 @@ int main()
 
     Frame m_recordFrame;
     size_t framesAtTime = s_maxChannelsIn;
+    std::array<uint16_t, s_maxChannelsOut> ledsInChannel;
 
     while (continue_looping.load()) {
 #ifdef TEST_ANIMATION
@@ -135,13 +136,17 @@ int main()
 
         framesAtTime = s_maxChannelsIn;
         /// wait for frames
+        ledsInChannel.fill(0);
         while (--framesAtTime >= 0 && m_recordQueue.try_dequeue(m_recordFrame)) {
             uint16_t outChannel = m_recordFrame.universe < s_maxUniversesInOut ? 0 : 1;
-            uint16_t pixelOffset = (m_recordFrame.universe % s_maxUniversesInOut) * 170;
-            for (size_t i = 0; i < 170; i += 3)
+            uint16_t pixelOffset = (m_recordFrame.universe % s_maxUniversesInOut) * s_pixelsInUniverse;
+            for (size_t i = 0; i < s_pixelsInUniverse; i += 3)
                 wsOut.channel[outChannel].leds[pixelOffset++] = (m_recordFrame.data.at(i * 3 + 0) << 16)
                                                                 | (m_recordFrame.data.at(i * 3 + 1) << 8)
                                                                 | m_recordFrame.data.at(i * 3 + 2);
+            if (pixelOffset + s_pixelsInUniverse > ledsInChannel.at(outChannel))
+                ledsInChannel.at(outChannel) = pixelOffset + s_pixelsInUniverse;
+            wsOut.channel[outChannel].count = ledsInChannel.at(outChannel);
         }
 
 #if (!defined(AMD64))
@@ -154,7 +159,7 @@ int main()
             // LOG(DEBUG) << "leds send:" << ledsInChannel[0];
         }
         else {
-            for (curChannel = 0; curChannel < chan_cntr; ++curChannel) {
+            for (size_t curChannel = 0; curChannel < s_maxChannelsOut; ++curChannel) {
                 if (ledsInChannel[curChannel] == 0)
                     continue;
                 digitalWrite(PIN_SWITCH_SPI, curChannel == 0 ? HIGH : LOW);

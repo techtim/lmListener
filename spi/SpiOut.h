@@ -50,11 +50,7 @@ struct SpiOut
             LOG(ERROR) << "SPI writeLed out of range chan=" << chan << " index=" << index;
             return;
         }
-        auto &buf = buffers[chan];
-        buf.pixels[index].f = 255;
-        buf.pixels[index].r = red;
-        buf.pixels[index].g = green;
-        buf.pixels[index].b = blue;
+        write_color(&buffers[chan].pixels[index], red, green, blue);
     }
 
     void send(size_t chan, size_t ledsNumber){
