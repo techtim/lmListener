@@ -10,6 +10,9 @@
 #include "easylogging++.h"
 #include "io/InputThread.h"
 #include "spi/SpiOut.h"
+#include <numeric>
+
+using std::optional;
 
 INITIALIZE_EASYLOGGINGPP
 
@@ -22,6 +25,9 @@ enum { TYPE_WS281X, TYPE_SK9822 };
 
 static std::map<std::string, int> s_ledTypeToEnum = { { "WS281X", TYPE_WS281X }, { "SK9822", TYPE_SK9822 } };
 
+using UniversesInOut = array<uint16_t, s_maxUniversesPerOut>;
+static const array<UniversesInOut, s_maxChannelsOut> s_universesToOutRouting{ UniversesInOut{ 0, 1, 2, 3, 4 },
+                                                                              UniversesInOut{ 5, 6, 7, 8, 9 } };
 using namespace LedMapper;
 
 ws2811_led_t *ledsWs1, *ledsWs2;
@@ -35,9 +41,29 @@ void stop_program(int sig)
     /* Put the ctrl-c to default action in case something goes wrong */
     signal(sig, SIG_DFL);
 }
+
+using OuputOffsetPair = std::pair<uint16_t, uint16_t>;
+
+optional<OuputOffsetPair> GetOutputAndOffsetForUniverse(const array<UniversesInOut, s_maxChannelsOut> &routing,
+                                                        uint16_t universe)
+{
+    uint16_t offset = 0;
+    auto it
+        = std::find_if(routing.cbegin(), routing.cend(), [&universe, &offset](const UniversesInOut &universesInOut) {
+              auto itUni = std::find(universesInOut.cbegin(), universesInOut.cend(), universe);
+              if (itUni == universesInOut.cend())
+                  return false;
+              offset = itUni - universesInOut.cbegin();
+              return true;
+          });
+
+    if (it != routing.cend())
+        return std::make_pair(it - routing.cbegin(), offset);
+    return {};
+}
 ///
 /// Main : init SPI, GPIO and WS interfaces, create lister on localhost:s_lmFrameInPort
-/// receive UDP frames and route them to LEDs through right outputs on Shield
+/// receives Ledmap UDP frames or ArtNet and route them to LEDs through right outputs on Shield
 ///
 int main()
 {
@@ -63,22 +89,11 @@ int main()
 #endif
 
     /// add two channels to spi out,
-    /// further can select kind of channel for different ICs
     spiOut.addChannel(LED_COUNT_SPI);
     spiOut.addChannel(LED_COUNT_SPI);
 
     if (!initGPIO())
         exit(1);
-
-    /// UDP listeners setup
-    UdpSettings udpConf;
-    udpConf.receiveOn(s_lmFrameInPort);
-    udpConf.receiveBufferSize = MAX_SENDBUFFER_SIZE;
-    auto frameInput = UdpManager();
-    if (!frameInput.Setup(udpConf)) {
-        LOG(ERROR) << "Failed to bind to port=" << s_lmFrameInPort;
-        exit(1);
-    }
 
     /// Init Gpio Multiplexer Switcher, LED Type selection listener thread and atomic isWS flag init
     GpioOutSwitcher gpioSwitcher;
@@ -108,10 +123,11 @@ int main()
                 LOG(DEBUG) << "Got new type " << type;
                 isWS.store(s_ledTypeToEnum[type] == TYPE_WS281X, std::memory_order_release);
             }
+            std::this_thread::sleep_for(s_secToMs);
         };
     });
 
-    LOG(INFO) << "Inited ledMapper Listener";
+    LOG(INFO) << "Inited LedmapListener";
 
     /// break while loops on termination
     signal(SIGINT, &stop_program);
@@ -120,9 +136,10 @@ int main()
     size_t animationCntr = 0;
 #endif
 
-    Frame m_recordFrame;
+    Frame recordFrame;
     size_t framesAtTime = s_maxChannelsIn;
     std::array<uint16_t, s_maxChannelsOut> ledsInChannel;
+    optional<OuputOffsetPair> outputAndOffset;
 
     while (continue_looping.load()) {
 #ifdef TEST_ANIMATION
@@ -136,23 +153,20 @@ int main()
 
         framesAtTime = s_maxChannelsIn;
         /// wait for frames
-        ledsInChannel.fill(0);
-        while (--framesAtTime >= 0 && m_recordQueue.try_dequeue(m_recordFrame)) {
-            if (m_recordFrame.universe >= s_maxChannelsIn)
+        while (--framesAtTime >= 0 && m_recordQueue.try_dequeue(recordFrame)) {
+            outputAndOffset = GetOutputAndOffsetForUniverse(s_universesToOutRouting, recordFrame.universe);
+            if (!outputAndOffset.has_value())
                 continue;
-            uint16_t outChannel = m_recordFrame.universe < s_maxUniversesPerOut ? 0 : 1;
-            uint16_t pixelOffset = (m_recordFrame.universe % s_maxUniversesPerOut) * s_pixelsInUniverse;
-            if (pixelOffset + s_pixelsInUniverse > ledsInChannel.at(outChannel)) {
-                ledsInChannel.at(outChannel) = pixelOffset + s_pixelsInUniverse;
-                wsOut.channel[outChannel].count = ledsInChannel.at(outChannel);
-                LOG(INFO) << "Uni: " << m_recordFrame.universe << " offset: " << pixelOffset 
-                    << " to chan: " << outChannel;
+
+            uint16_t outChannel = outputAndOffset.value().first;
+            uint16_t pixelOffset = outputAndOffset.value().second * s_pixelsInUniverse;
+
+            /// don't use 510, 511, 512 addresses == s_dmxUniverseSize - 1
+            for (size_t i = 0; i < s_dmxUniverseSize - 3; i += 3) {
+                wsOut.channel[outChannel].leds[pixelOffset++] = (recordFrame.data.at(i + 0) << 16)
+                                                                | (recordFrame.data.at(i + 1) << 8)
+                                                                | recordFrame.data.at(i + 2);
             }
-            
-            for (size_t i = 0; i < s_pixelsInUniverse; i += 3)
-                wsOut.channel[outChannel].leds[pixelOffset++] = (m_recordFrame.data.at(i * 3 + 0) << 16)
-                                                                | (m_recordFrame.data.at(i * 3 + 1) << 8)
-                                                                | m_recordFrame.data.at(i * 3 + 2);
         }
 
 #if (!defined(AMD64))

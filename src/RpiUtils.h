@@ -66,7 +66,7 @@ static inline bool initGPIO()
 
 static inline bool initWS(ws2811_led_t *ledsWs1, ws2811_led_t *ledsWs2, ws2811_t &ledstring)
 {
-
+    LOG(INFO) << "Init 2 WS type outputs each with " << LED_COUNT_WS << " leds";
     ledsWs1 = (ws2811_led_t *)malloc(sizeof(ws2811_led_t) * LED_COUNT_WS);
     ledsWs2 = (ws2811_led_t *)malloc(sizeof(ws2811_led_t) * LED_COUNT_WS);
 

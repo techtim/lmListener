@@ -32,6 +32,16 @@ InputThread::InputThread(ReaderWriterQueue<InputConf> &config, ReaderWriterQueue
     InitArtPollReplyFrame(m_pollReply, 0, 0, m_hostIp32, m_mac);
     /// Setup broadcast receiver for ArtNetOpDmx and sender for ArtNetOpPoll local network id ending with 255
     InitArtDmxFrame(m_artnetFrame);
+
+     /// UDP listeners setup
+    UdpSettings udpConf;
+    udpConf.receiveOn(s_lmFrameInPort);
+    udpConf.receiveBufferSize = MAX_SENDBUFFER_SIZE;
+    m_lmInput = UdpManager();
+    if (!m_lmInput.Setup(udpConf)) {
+        LOG(ERROR) << "Failed to bind to port=" << s_lmFrameInPort;
+        assert(false);
+    }
 }
 
 void InputThread::startListen(size_t fps) { startThreading(fps); }
