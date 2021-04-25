@@ -45,7 +45,7 @@ void stop_program(int sig)
 using OuputOffsetPair = std::pair<uint16_t, uint16_t>;
 
 optional<OuputOffsetPair> GetOutputAndOffsetForUniverse(const array<UniversesInOut, s_maxChannelsOut> &routing,
-                                                        uint16_t universe)
+                                                        const uint16_t universe)
 {
     uint16_t offset = 0;
     auto it
