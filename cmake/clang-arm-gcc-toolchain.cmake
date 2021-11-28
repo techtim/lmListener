@@ -26,7 +26,7 @@ set(CMAKE_CXX_COMPILER_TARGET ${TOOLCHAIN_TRIPLE})
 # Without that flag CMake is not able to pass test compilation check
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
-string(APPEND CMAKE_CXX_FLAGS " -nostdinc++ -I${ARM_LLVM_PATH}/include/c++/v1 -Wl,-L${ARM_LLVM_PATH}/lib")''
+string(APPEND CMAKE_CXX_FLAGS " -nostdinc++ -I${ARM_LLVM_PATH}/include/c++/v1 -Wl,-L${ARM_LLVM_PATH}/lib")
 string(APPEND CMAKE_EXE_LINKER_FLAGS " -fuse-ld=lld -static")
 string(APPEND CMAKE_EXE_LINKER_FLAGS " -I${ARM_LLVM_PATH}/include/c++/v1 -Wl,-L${ARM_LLVM_PATH}/lib")
 string(APPEND CMAKE_EXE_LINKER_FLAGS " -rpath ${ARM_LLVM_PATH}/lib")

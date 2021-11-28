@@ -57,9 +57,28 @@ if ((NOT CMAKE_BUILD_TYPE) OR (CMAKE_BUILD_TYPE STREQUAL "Release"))
 endif ()
 message("** CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
 
-if (NOT ${ARM_TOOLCHAIN_PATH} STREQUAL "")
-    message("** CROSS COMPILE for ARM")
+# Add static WS281x lib
+if (AMD64)
+    string(APPEND CMAKE_CXX_FLAGS " -stdlib=libc++")
+    add_definitions(-DAMD64=1)
+    set(WS281X_STATIC_LIB "")
+    message("** Build for desktop Linux")
+elseif (ARM_TOOLCHAIN_PATH STREQUAL "")
+    message("** COMPILE FOR ARM")
+    string(APPEND CMAKE_CXX_FLAGS " -stdlib=libc++")
+    set(WS281X_STATIC_LIB "${CMAKE_SOURCE_DIR}/thirdparty/rpi_ws281x/libws2811.a")
+else()
+    message("** CROSS COMPILE FOR ARM")
+    
     include(${CMAKE_SOURCE_DIR}/cmake/clang-arm-gcc-toolchain.cmake)
-endif ()
+
+    set(WS281X_STATIC_LIB "${CMAKE_SOURCE_DIR}/thirdparty/rpi_ws281x/libws2811.a")
+#    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lwiringPi")
+#    find_library(WIRINGPI_LIBRARIES NAMES wiringPi)
+#    target_link_libraries(${LM_LIB_NAME} PUBLIC ${WIRINGPI_LIBRARIES})
+
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
+    string(APPEND CMAKE_CXX_FLAGS " -nostdinc++ -I${ARM_LLVM_PATH}/include/c++/v1 -Wl,-L${ARM_LLVM_PATH}/lib")
+endif()
 
 add_subdirectory(src)
